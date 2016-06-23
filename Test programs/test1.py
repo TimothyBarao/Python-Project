@@ -1,5 +1,6 @@
 from pydub import AudioSegment
 song = AudioSegment.from_file( "Music/erb.mp3",  format="mp3")
+#change path to song above to use whatever fiel you wish 
 
 half = len(song) / 2
 first_half = song[:half]
