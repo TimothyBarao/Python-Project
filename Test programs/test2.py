@@ -16,7 +16,6 @@ while True:
    pitch = pitch_o(samples)[0]
    pitch = float(pitch)
    confidence = pitch_o.get_confidence()
-   #if confidence < 0.8: pitch = 0
    print "%f %f %f" % (total_frames/float(samplerate), pitch, confidence)
    pitches += [pitch]
    conf +=[confidence]
@@ -26,4 +25,3 @@ while True:
 
 print "Total seconds in song:"
 print total_frames/float(samplerate)
-
