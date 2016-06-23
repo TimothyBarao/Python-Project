@@ -1,6 +1,7 @@
 from aubio import pitch, source
 
 s = source("Music/erb.mp3", 44100, 512)
+#change path above to use whatever audio fiel you wish
 samplerate = s.samplerate
 
 pitch_o = pitch("yin", 4096, 512, samplerate)
