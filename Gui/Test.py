@@ -9,19 +9,32 @@ import copy
 
 
 def create_wave(song):
+    #np.set_printoptions(threshold=np.inf)
     mpl.rcParams['agg.path.chunksize'] = 10000
     rate, data = scipy.io.wavfile.read(song)
     data = copy.deepcopy(data)
+    newdata =np.array([[0,0]])
+    blerg = np.array([[0,0]])
     print(data.shape)
-    data = np.delete(data, np.s_[::2], 1)
+    print(data.shape[0])
+    
+    i = 0
+    while 1:
+        newdata = np.append(newdata, data[i])
+        i += 8000
+        if i > data.shape[0]:
+            break
+        
     print(data.shape)
+    print(newdata)
+    
 
 
 
     #x = np.arange(0.0, 2.0, 0.01)
     #data = np.sin(data*x)
     
-    plt.plot(data)   
+    plt.plot(newdata)   
     plt.show()
 
 song = sys.argv[1]
