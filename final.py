@@ -1,22 +1,20 @@
+"""Module RoboMixer, created by Ian Michael Terry, PaulNieto, and Tim Barao"""
 from __future__ import print_function
 from PyQt4 import QtGui
-import sys
-import os
-
-from pylab import *
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from amen.audio import Audio
 from amen.synthesize import synthesize
 
+import sys
+import os
+import copy
 import numpy as np
 import scipy.io.wavfile
 import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import wave
-import copy
 
 class SongCombine(QtGui.QWidget):
+    """Main class that contains the GUI and functionality"""
     def __init__(self, parent=None):
         super(SongCombine, self).__init__(parent)
         self.setGeometry(300, 300, 500, 300)
@@ -27,7 +25,8 @@ class SongCombine(QtGui.QWidget):
 
     def on_draw(self):
         """
-        Description: on_draw performs error checking on the GUI inputs and, if everything is correct, it calls the funcitons that
+        Description: on_draw performs error checking on the GUI inputs and,
+        if everything is correct, it calls the funcitons that
         create and display the graph information on the GUI.
         Return value: none.
         """
@@ -36,25 +35,33 @@ class SongCombine(QtGui.QWidget):
             print("Please enter an absolute path")
         else:
             for x in range(0, 8):
-                # ensures that all the boxes are checked off; if not displays error message
+                # ensures that all the boxes are checked off;
+                # if not displays error message
                 if not self.boxL1[x].isChecked() and not self.boxL2[x].isChecked():
-                   QtGui.QMessageBox.critical(self, "Error", "Please check of all boxes", QtGui.QMessageBox.Ok)
-                   break
+                    QtGui.QMessageBox.critical(self, "Error", "Please check of all boxes", QtGui.QMessageBox.Ok)
+                    break
             else:
-                # ensures that the two paths to the songs are valid and the files exist
+                # ensures that the two paths to the songs are valid
+                # and the files exist
                 if self.testForSong(self.song1) != 1:
                     if self.testForSong(self.song2) != 1:
-                        # if corect begins grabbing final information and displays graphs on GUI
-                        song1 = self.song1
-                        song2 = self.song2
+                        # if correct begins grabbing final information
+                        # and displays graphs on GUI
+                        song1 = self.song1.text()
+                        song2 = self.song2.text()
 
                         modValues = list()
 
                         for pos, x in enumerate(self.boxL1):
                             if x.isChecked():
-                                modValue.append(pos)
+                                modValues.append(pos)
 
-                        song3 = mash(song1, song2, modValues)
+                        try:
+                            song3 = mash(song1, song2, modValues)
+                        except ValueError:
+                            song3 = mash_except(song1, song2, modValues)
+
+                        #song3 = mash(song1, song2, modValues)
 
                         song1_plot = create_wave(song1)
                         song2_plot = create_wave(song2)
@@ -70,6 +77,12 @@ class SongCombine(QtGui.QWidget):
         Description: Ensures that the song exits in the path given
         Return vaue: 0 if passes the test, 1 if it fails
         """
+
+        if os.path.isfile(songName.text()):
+            return 0
+        else:
+            QtGui.QMessageBox.critical(self, "Error", "Directory for song not found", QtGui.QMessageBox.Ok)
+        '''
 
         # parses the path given in order to test if file exists
 
@@ -106,7 +119,7 @@ class SongCombine(QtGui.QWidget):
             QtGui.QMessageBox.critical(self, "Error", "Directory for song not found", QtGui.QMessageBox.Ok)
             retVal =  1
         return retVal
-
+        '''
 
     def add_content(self):
         """
@@ -114,12 +127,12 @@ class SongCombine(QtGui.QWidget):
         Return value: None.
         """
 
-        self.setGeometry(0,0,1000,600)
+        self.setGeometry(0, 0, 1000, 600)
         self.central_widget = QtGui.QWidget()
 
         # creates textbox to enter paths
-        self.song1 = QtGui.QLineEdit("~/Group_Project/Gui/wav/knob.wav")
-        self.song2 = QtGui.QLineEdit("~/Group_Project/Gui/wav/time.wav")
+        self.song1 = QtGui.QLineEdit("wav/knob.wav")
+        self.song2 = QtGui.QLineEdit("wav/time.wav")
 
         # labels for textboxes
         s1Label = QtGui.QLabel()
@@ -215,13 +228,11 @@ class SongCombine(QtGui.QWidget):
         # when the button is clicked calls this function
         mixer.clicked.connect(self.on_draw)
 
-
     def checkOther(self):
-    """
-    Description: checks off check box that triggered call and greys out the opposite
-    check box on the second row that is for the other song
-    """
-
+        """
+        Description: checks off check box that triggered call and greys out the opposite
+        check box on the second row that is for the other song
+        """
         for x in range(0, 8):
             if self.boxL1[x].isChecked():
                 self.boxL2[x].setEnabled(False)
@@ -235,37 +246,69 @@ class SongCombine(QtGui.QWidget):
 
 
 def mash(song1, song2, modValues):
-
-	'''converts songs from an mp3'''
-	audio1 = Audio(song1)
+    """Slices two songs and creates third based upon beats chosen"""
+    audio1 = Audio(song1)
     audio2 = Audio(song2)
 
-	'''breaks the song apart based on beats, returns a list of audio segments'''
+    #breaks the song apart based on beats, returns a list of audio segments
     beats1 = audio1.timings['beats']
     beats2 = audio2.timings['beats']
 
-    mashup =[]
+    mashup = []
     i = 1
-	'''appends beats from each song to a list, dependent on the beats selected by the user in the GUI'''
+	#appends beats from each song to a list, dependent on the beats selected by the user in the GUI'''
+
+    print(modValues)
     for beat1, beat2 in zip(beats1, beats2):
         if(i%8 in modValues):
 	        mashup.append(beat1)
         else:
 	        mashup.append(beat2)
-        i+=1
+        i += 1
 
-	'''converts song from a list of audio to one seamless piece of audio'''
+    #converts song from a list of audio to one seamless piece of audio'''
     out = synthesize(mashup)
-    output = 'one_knob.wav'
-	'''saves the newly created song as an uncompressed .wav file'''
+    output = 'Mashup.wav'
+    #saves the newly created song as an uncompressed .wav file'''
     out.output(output)
     return output
 
+def mash_except(song1, song2, modValues):
+    """Slices two songs and creates third based upon beats chosen"""
+    audio1 = Audio(song1)
+    audio2 = Audio(song2)
+
+    #breaks the song apart based on beats, returns a list of audio segments
+    beats1 = audio1.timings['beats']
+    beats2 = audio2.timings['beats']
+
+    mashup = []
+    i = 1
+	#appends beats from each song to a list, dependent on the beats selected by the user in the GUI'''
+
+    print(modValues)
+    for beat2, beat1 in zip(beats2, beats1):
+        if(i%8 not in modValues):
+            mashup.append(beat1)
+        else:
+            mashup.append(beat2)
+        i += 1
+
+    #converts song from a list of audio to one seamless piece of audio'''
+    out = synthesize(mashup)
+    output = 'Mashup.wav'
+    #saves the newly created song as an uncompressed .wav file'''
+    out.output(output)
+    return output
+
+
+
 def create_wave(song):
+    """Creates and returns a matrix that will be used to plot a waveform"""
     mpl.rcParams['agg.path.chunksize'] = 10000
     rate, data = scipy.io.wavfile.read(song)
     data = copy.deepcopy(data)
-    newdata =np.array([[0,0]])
+    newdata = np.array([[0, 0]])
 
     i = 0
     while 1:
@@ -286,8 +329,10 @@ class MixButton(QtGui.QPushButton):
         QtGui.QPushButton.__init__(self, parent)
         self.setText("Mix")
     def enable(self, boolean):
+        """Enable button"""
         self.setEnabled(boolean)
     def disable(self, boolean):
+        """Disable button"""
         self.setDisabled(boolean)
 
 if __name__ == "__main__":
